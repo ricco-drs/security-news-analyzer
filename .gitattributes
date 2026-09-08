@@ -1,0 +1,16 @@
+# Normaliza los saltos de linea entre sistemas operativos.
+# Git guarda los archivos de texto con LF en el repositorio y los
+# convierte al final de linea nativo al hacer checkout.
+* text=auto
+
+# Archivos que siempre deben usar LF
+*.py   text eol=lf
+*.md   text eol=lf
+*.txt  text eol=lf
+.gitignore     text eol=lf
+.gitattributes text eol=lf
+
+# Scripts de Windows: siempre CRLF
+*.ps1  text eol=crlf
+*.bat  text eol=crlf
+*.cmd  text eol=crlf

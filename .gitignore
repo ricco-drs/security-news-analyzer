@@ -216,3 +216,20 @@ __marimo__/
 
 # Streamlit
 .streamlit/secrets.toml
+
+# ---------------------------------------------------------------------------
+# Laboratorio 1 — Security News Analyzer
+# ---------------------------------------------------------------------------
+
+# Entornos virtuales del laboratorio (no se suben al repositorio)
+.venv/
+.venv-demo/
+
+# Configuracion de asistentes de IA (no forma parte del entregable)
+.claude/
+CLAUDE.md
+.cursor/
+.aider*
+
+# Documentacion interna del equipo (no es el entregable)
+README (3).md
