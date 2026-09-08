@@ -1,0 +1,185 @@
+=== pip list ===
+Package                 Version
+----------------------- ---------
+beautifulsoup4          4.15.0
+boolean.py              5.0
+build                   1.6.0
+CacheControl            0.14.4
+certifi                 2026.7.22
+charset-normalizer      3.5.1
+colorama                0.4.6
+cyclonedx-python-lib    11.12.0
+defusedxml              0.7.1
+filelock                3.32.5
+idna                    3.19
+installer               1.0.1
+license-expression      30.4.4
+markdown-it-py          4.2.0
+mdurl                   0.1.2
+msgpack                 1.2.2
+nab                     0.0.17
+nab-index               0.0.17
+nab-markersets          0.0.17
+nab-project             0.0.17
+nab-provider            0.0.17
+nab-resolver            0.0.17
+packageurl-python       0.17.6
+packaging               26.3
+pip                     25.1.1
+pip_api                 0.0.35
+pip_audit               2.10.1
+pip-requirements-parser 32.0.1
+pipdeptree              4.2.5
+platformdirs            4.11.7
+py-serializable         2.1.0
+Pygments                2.21.0
+pyparsing               3.3.2
+pyproject_hooks         1.2.0
+requests                2.34.2
+rich                    15.0.0
+sortedcontainers        2.4.0
+soupsieve               2.9.2
+tomli                   2.4.1
+tomli_w                 1.2.0
+truststore              0.10.4
+typing_extensions       4.16.0
+urllib3                 2.7.0
+
+=== pipdeptree ===
+beautifulsoup4==4.15.0
+  - soupsieve [required: >=1.6.1, installed: 2.9.2]
+  - typing_extensions [required: >=4.0.0, installed: 4.16.0]
+pip_audit==2.10.1
+  - CacheControl [required: >=0.13.0, installed: 0.14.4]
+    - filelock [required: >=3.8.0, installed: 3.32.5, extra: filecache]
+    - msgpack [required: >=0.5.2,<2.0.0, installed: 1.2.2]
+    - requests [required: >=2.16.0, installed: 2.34.2]
+      - certifi [required: >=2023.5.7, installed: 2026.7.22]
+      - charset-normalizer [required: >=2,<4, installed: 3.5.1]
+      - idna [required: >=2.5,<4, installed: 3.19]
+      - urllib3 [required: >=1.26,<3, installed: 2.7.0]
+  - cyclonedx-python-lib [required: >=5,<12, installed: 11.12.0]
+    - license-expression [required: >=30,<31, installed: 30.4.4]
+      - boolean.py [required: >=4.0, installed: 5.0]
+    - packageurl-python [required: >=0.11,<2, installed: 0.17.6]
+    - py-serializable [required: >=2.1.0,<3.0.0, installed: 2.1.0]
+      - defusedxml [required: >=0.7.1,<0.8.0, installed: 0.7.1]
+    - sortedcontainers [required: >=2.4.0,<3.0.0, installed: 2.4.0]
+  - packaging [required: >=23.0.0, installed: 26.3]
+  - pip_api [required: >=0.0.28, installed: 0.0.35]
+    - pip [required: Any, installed: 25.1.1]
+  - pip-requirements-parser [required: >=32.0.0, installed: 32.0.1]
+    - packaging [required: Any, installed: 26.3]
+    - pyparsing [required: Any, installed: 3.3.2]
+  - platformdirs [required: >=4.2.0, installed: 4.11.7]
+  - requests [required: >=2.31.0, installed: 2.34.2]
+    - certifi [required: >=2023.5.7, installed: 2026.7.22]
+    - charset-normalizer [required: >=2,<4, installed: 3.5.1]
+    - idna [required: >=2.5,<4, installed: 3.19]
+    - urllib3 [required: >=1.26,<3, installed: 2.7.0]
+  - rich [required: >=12.4, installed: 15.0.0]
+    - markdown-it-py [required: >=2.2.0, installed: 4.2.0]
+      - mdurl [required: ~=0.1, installed: 0.1.2]
+    - Pygments [required: >=2.13.0,<3.0.0, installed: 2.21.0]
+  - tomli [required: >=2.2.1, installed: 2.4.1]
+  - tomli_w [required: >=1.2.0, installed: 1.2.0]
+pipdeptree==4.2.5
+  - nab [required: >=0.0.17, installed: 0.0.17]
+    - nab-index [required: ==0.0.17, installed: 0.0.17]
+      - nab-provider [required: ==0.0.17, installed: 0.0.17]
+        - nab-markersets [required: ==0.0.17, installed: 0.0.17]
+        - nab-resolver [required: ==0.0.17, installed: 0.0.17]
+        - typing_extensions [required: >=4.6, installed: 4.16.0]
+      - packaging [required: >=24.0, installed: 26.3]
+      - truststore [required: >=0.10, installed: 0.10.4]
+      - typing_extensions [required: >=4.6, installed: 4.16.0]
+      - urllib3 [required: >=2.0, installed: 2.7.0]
+    - nab-markersets [required: ==0.0.17, installed: 0.0.17]
+    - nab-project [required: ==0.0.17, installed: 0.0.17]
+      - build [required: >=1.2, installed: 1.6.0]
+        - colorama [required: Any, installed: 0.4.6]
+        - packaging [required: >=24.0, installed: 26.3]
+        - pyproject_hooks [required: Any, installed: 1.2.0]
+      - installer [required: >=1.0, installed: 1.0.1]
+      - nab-index [required: ==0.0.17, installed: 0.0.17]
+        - nab-provider [required: ==0.0.17, installed: 0.0.17]
+          - nab-markersets [required: ==0.0.17, installed: 0.0.17]
+          - nab-resolver [required: ==0.0.17, installed: 0.0.17]
+          - typing_extensions [required: >=4.6, installed: 4.16.0]
+        - packaging [required: >=24.0, installed: 26.3]
+        - truststore [required: >=0.10, installed: 0.10.4]
+        - typing_extensions [required: >=4.6, installed: 4.16.0]
+        - urllib3 [required: >=2.0, installed: 2.7.0]
+      - nab-markersets [required: ==0.0.17, installed: 0.0.17]
+      - nab-provider [required: ==0.0.17, installed: 0.0.17]
+        - nab-markersets [required: ==0.0.17, installed: 0.0.17]
+        - nab-resolver [required: ==0.0.17, installed: 0.0.17]
+        - typing_extensions [required: >=4.6, installed: 4.16.0]
+      - nab-resolver [required: ==0.0.17, installed: 0.0.17]
+      - packaging [required: >=24.0, installed: 26.3]
+      - pyproject_hooks [required: >=1.2, installed: 1.2.0]
+      - tomli [required: >=2.2, installed: 2.4.1]
+      - tomli_w [required: >=1.2, installed: 1.2.0]
+      - typing_extensions [required: >=4.6, installed: 4.16.0]
+    - nab-provider [required: ==0.0.17, installed: 0.0.17]
+      - nab-markersets [required: ==0.0.17, installed: 0.0.17]
+      - nab-resolver [required: ==0.0.17, installed: 0.0.17]
+      - typing_extensions [required: >=4.6, installed: 4.16.0]
+    - nab-resolver [required: ==0.0.17, installed: 0.0.17]
+    - tomli [required: >=2.2, installed: 2.4.1]
+    - typing_extensions [required: >=4.6, installed: 4.16.0]
+  - nab-index [required: >=0.0.17, installed: 0.0.17]
+    - nab-provider [required: ==0.0.17, installed: 0.0.17]
+      - nab-markersets [required: ==0.0.17, installed: 0.0.17]
+      - nab-resolver [required: ==0.0.17, installed: 0.0.17]
+      - typing_extensions [required: >=4.6, installed: 4.16.0]
+    - packaging [required: >=24.0, installed: 26.3]
+    - truststore [required: >=0.10, installed: 0.10.4]
+    - typing_extensions [required: >=4.6, installed: 4.16.0]
+    - urllib3 [required: >=2.0, installed: 2.7.0]
+  - nab-project [required: >=0.0.17, installed: 0.0.17]
+    - build [required: >=1.2, installed: 1.6.0]
+      - colorama [required: Any, installed: 0.4.6]
+      - packaging [required: >=24.0, installed: 26.3]
+      - pyproject_hooks [required: Any, installed: 1.2.0]
+    - installer [required: >=1.0, installed: 1.0.1]
+    - nab-index [required: ==0.0.17, installed: 0.0.17]
+      - nab-provider [required: ==0.0.17, installed: 0.0.17]
+        - nab-markersets [required: ==0.0.17, installed: 0.0.17]
+        - nab-resolver [required: ==0.0.17, installed: 0.0.17]
+        - typing_extensions [required: >=4.6, installed: 4.16.0]
+      - packaging [required: >=24.0, installed: 26.3]
+      - truststore [required: >=0.10, installed: 0.10.4]
+      - typing_extensions [required: >=4.6, installed: 4.16.0]
+      - urllib3 [required: >=2.0, installed: 2.7.0]
+    - nab-markersets [required: ==0.0.17, installed: 0.0.17]
+    - nab-provider [required: ==0.0.17, installed: 0.0.17]
+      - nab-markersets [required: ==0.0.17, installed: 0.0.17]
+      - nab-resolver [required: ==0.0.17, installed: 0.0.17]
+      - typing_extensions [required: >=4.6, installed: 4.16.0]
+    - nab-resolver [required: ==0.0.17, installed: 0.0.17]
+    - packaging [required: >=24.0, installed: 26.3]
+    - pyproject_hooks [required: >=1.2, installed: 1.2.0]
+    - tomli [required: >=2.2, installed: 2.4.1]
+    - tomli_w [required: >=1.2, installed: 1.2.0]
+    - typing_extensions [required: >=4.6, installed: 4.16.0]
+
+=== pip list --outdated ===
+Package      Version Latest Type
+------------ ------- ------ -----
+filelock     3.32.5  3.32.6 wheel
+pip          25.1.1  26.2.1 wheel
+platformdirs 4.11.7  4.11.8 wheel
+
+=== pip-audit (entorno completo, incluye herramientas de analisis) ===
+Name Version ID              Fix Versions
+---- ------- --------------- ------------
+pip  25.1.1  PYSEC-2026-196  26.1.2
+pip  25.1.1  PYSEC-2026-1795 25.3
+pip  25.1.1  PYSEC-2026-1796 26.0
+pip  25.1.1  PYSEC-2026-196  26.1.2
+pip  25.1.1  PYSEC-2026-2875 26.1
+pip  25.1.1  PYSEC-2026-2876 26.1
+pip  25.1.1  PYSEC-2026-3721 26.2
+
+=== pip-audit -r requirements.txt (solo dependencias de la aplicacion) ===
