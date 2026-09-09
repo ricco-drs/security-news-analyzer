@@ -160,6 +160,91 @@ El paso 3 es el que suele saltarse y es el mas importante: `pip-audit` y
 `pip check` dicen que el entorno esta sano, pero no dicen si la aplicacion
 sigue funcionando.
 
+## 5. Analisis de Software Supply Chain
+
+### El caso planteado en el laboratorio
+
+Una aplicacion tiene 15 dependencias directas, y esas 15 requieren otras 80
+librerias. La pregunta es cuantos componentes de terceros forman realmente
+parte de la aplicacion.
+
+La respuesta es 95, no 15. El equipo eligio 15 y reviso 15, pero lo que
+termina ejecutandose en produccion son 95 paquetes escritos por gente que el
+equipo no conoce, ninguno de los cuales pidio permiso para entrar. Y ese
+numero es el minimo: cada una de las 80 puede traer las suyas propias.
+
+### Lo mismo medido en este proyecto
+
+No hace falta irse a un caso hipotetico, en este laboratorio pasa igual:
+
+| | Cantidad |
+|---|---|
+| Paquetes que instalamos a mano | 4 (`requests`, `beautifulsoup4`, `pipdeptree`, `pip-audit`) |
+| Paquetes en `requirements.txt` (la app) | 8 |
+| Paquetes totales en el entorno virtual | 43 |
+
+Por el lado de la aplicacion, 2 decisiones se convirtieron en 8 paquetes:
+por cada libreria que elegimos, entraron 3 que no elegimos.
+
+El dato mas incomodo es el otro. `pipdeptree` y `pip-audit`, las dos
+herramientas que instalamos justamente para auditar la cadena de suministro,
+arrastraron por si solas unos 35 paquetes mas (`rich`, `Pygments`,
+`cyclonedx-python-lib`, toda la familia `nab-*`, etc.). Es decir, las
+herramientas de seguridad tambien son cadena de suministro. Auditar tiene su
+propio costo en superficie de ataque, y eso es exactamente lo que motiva
+mantener `requirements.txt` y `requirements-dev.txt` separados: lo que se
+instala para analizar no tiene por que viajar al entorno donde corre la
+aplicacion.
+
+### Quien es responsable de una vulnerabilidad en una dependencia transitiva
+
+Esta es la pregunta de la Parte VII, y la respuesta corta es: el equipo que
+mantiene la aplicacion.
+
+Nuestro codigo no tiene ni un solo `import urllib3`. Nunca lo elegimos, no
+sabemos quien lo mantiene, no leimos su codigo. Pero si mañana sale un aviso
+de seguridad para la version de `urllib3` que tenemos instalada, la
+aplicacion esta expuesta, porque cada `requests.get()` que hace `app.py`
+termina ejecutando codigo de `urllib3`. El usuario final no distingue entre
+"nuestro codigo" y "codigo que vino de arrastre": para el es una sola
+aplicacion.
+
+Quien publica el parche es el mantenedor de `urllib3`, pero quien tiene que
+enterarse, evaluar si le afecta, actualizar y verificar que nada se rompio
+es el equipo de la aplicacion. La responsabilidad de escribir el arreglo y
+la responsabilidad de aplicarlo son cosas distintas, y la segunda no se
+delega.
+
+### Por que esto es un riesgo y que se puede hacer
+
+Todo ese codigo de terceros se ejecuta con los mismos permisos que el
+nuestro: mismo proceso, mismo acceso a disco, misma red, mismas variables de
+entorno. No hay ninguna barrera entre `app.py` y la libreria numero 43 del
+entorno.
+
+Los riesgos concretos son tres:
+
+- Vulnerabilidades, que es lo que busca `pip-audit`. Son las mas faciles de
+  detectar porque estan publicadas.
+- Paquetes comprometidos a proposito: una cuenta de mantenedor robada, o un
+  paquete con nombre parecido a uno legitimo (`requestss` en vez de
+  `requests`). Aca `pip-audit` no ayuda, porque el codigo malicioso es nuevo
+  y todavia no hay aviso publicado.
+- Licencias: una dependencia transitiva puede traer condiciones legales que
+  nadie reviso al instalarla.
+
+Lo que si esta a nuestro alcance en un proyecto de este tamaño:
+
+- Fijar versiones exactas en `requirements.txt` con `==`, para que instalar
+  hoy y instalar en tres meses den el mismo resultado.
+- Correr `pip-audit` de forma regular y no una sola vez, porque el resultado
+  cambia solo, sin que nadie toque el codigo.
+- Mirar el arbol con `pipdeptree` antes de agregar una dependencia nueva:
+  una libreria que resuelve algo pequeño pero arrastra veinte paquetes
+  probablemente no valga la pena.
+- Tener el menor numero posible de dependencias directas, que es la unica
+  parte de la cadena que realmente controlamos.
+
 ## Anexo: demostracion controlada con una version vulnerable
 
 Esto es una prueba aparte, hecha a proposito, para ver como se ve un
