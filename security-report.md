@@ -81,7 +81,65 @@ dependencias de la aplicacion. Ese resultado esta documentado igual en
 aca porque `pip` no es una dependencia de Security News Analyzer, es la
 herramienta con la que se instalan las dependencias.
 
-Como la tabla de esta seccion queda vacia con el entorno real, en el Anexo
-mas abajo se documenta una demostracion controlada con una version de
-`urllib3` que si tiene vulnerabilidades conocidas, para dejar constancia de
-que sabemos leer e interpretar un resultado positivo de pip-audit.
+Como la tabla de esta seccion queda vacia con el entorno real, mas abajo se
+documenta una demostracion controlada con una version de `urllib3` que si
+tiene vulnerabilidades conocidas, para dejar constancia de que sabemos leer
+e interpretar un resultado positivo de pip-audit.
+
+## Anexo: demostracion controlada con una version vulnerable
+
+Esto es una prueba aparte, hecha a proposito, para ver como se ve un
+resultado positivo de pip-audit. No tiene nada que ver con el entorno real
+del proyecto: se hizo en un entorno virtual separado, `.venv-demo/`, que no
+se sube al repositorio (esta en `.gitignore`) y que no toca ni
+`requirements.txt` ni el `.venv/` de la aplicacion.
+
+Pasos:
+
+```bash
+python -m venv .venv-demo
+.venv-demo\Scripts\activate
+pip install "urllib3==1.26.5" pip-audit
+echo urllib3==1.26.5 > temp.txt
+pip-audit -r temp.txt
+```
+
+`urllib3==1.26.5` es una version de 2021 que se sabe que tiene varios CVEs
+publicados. El archivo `temp.txt` es un archivo local de un solo uso, para
+poder auditar unicamente esa version sin que se mezcle con `pip-audit`
+mismo (que tambien esta instalado en ese `.venv-demo` y, como se vio en la
+seccion anterior, tiene su propio ruido); no se sube al repositorio ni forma
+parte del entregable.
+
+Resultado real obtenido:
+
+```
+Found 10 known vulnerabilities in 1 package
+Name    Version ID              Fix Versions
+------- ------- --------------- -------------
+urllib3 1.26.5  PYSEC-2023-192  1.26.17,2.0.6
+urllib3 1.26.5  PYSEC-2023-192  1.26.17,2.0.6
+urllib3 1.26.5  PYSEC-2023-212  1.26.18,2.0.7
+urllib3 1.26.5  PYSEC-2023-212  1.26.18,2.0.7
+urllib3 1.26.5  PYSEC-2026-141  2.7.0
+urllib3 1.26.5  PYSEC-2026-1999 2.5.0
+urllib3 1.26.5  PYSEC-2026-1998 2.6.0
+urllib3 1.26.5  PYSEC-2026-1995 1.26.19,2.2.2
+urllib3 1.26.5  PYSEC-2026-1994 2.6.0
+urllib3 1.26.5  PYSEC-2026-1996 2.6.3
+```
+
+Como se lee esta tabla: cada fila es un aviso de seguridad distinto (columna
+`ID`) que afecta a la version 1.26.5 de `urllib3`, con la version minima a
+la que hay que subir para dejar de estar expuesto (columna `Fix Versions`).
+Los IDs repetidos (`PYSEC-2023-192` y `PYSEC-2023-212` aparecen dos veces
+cada uno) son porque pip-audit consulta mas de una fuente de datos y a veces
+el mismo aviso aparece registrado en ambas.
+
+Lo importante para el laboratorio es la comparacion: en nuestro
+`requirements.txt` real, `urllib3` esta en la version `2.7.0`, que ya
+incluye las correcciones de todos estos avisos (la columna `Fix Versions`
+de varias filas apunta justo a `2.7.0` o versiones posteriores). Por eso el
+entorno real de la aplicacion no aparece en esta lista: no es que pip-audit
+no funcione, es que la version que ya tenemos instalada corrige estos
+problemas.
