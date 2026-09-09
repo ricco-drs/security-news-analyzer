@@ -245,6 +245,125 @@ Lo que si esta a nuestro alcance en un proyecto de este tamaño:
 - Tener el menor numero posible de dependencias directas, que es la unica
   parte de la cadena que realmente controlamos.
 
+## 6. Parte VIII: comparacion antes y despues de actualizar
+
+Lo primero fue ver que habia desactualizado en el entorno:
+
+```
+$ pip list --outdated
+Package      Version Latest Type
+------------ ------- ------ -----
+filelock     3.32.5  3.32.6 wheel
+pip          25.1.1  26.2.1 wheel
+platformdirs 4.11.7  4.11.8 wheel
+```
+
+Ninguna dependencia de la aplicacion aparece en esa lista. Aun asi corrimos
+el comando que pide la guia:
+
+```
+$ pip install --upgrade requests
+Requirement already satisfied: requests in .venv\lib\site-packages (2.34.2)
+Requirement already satisfied: charset_normalizer<4,>=2 ... (3.5.1)
+Requirement already satisfied: idna<4,>=2.5 ... (3.19)
+Requirement already satisfied: urllib3<3,>=1.26 ... (2.7.0)
+Requirement already satisfied: certifi>=2023.5.7 ... (2026.7.22)
+```
+
+`requests` ya estaba en la ultima version, asi que el comando no hizo nada.
+Esto ya deja algo: ejecutar el comando de actualizar no significa que haya
+algo para actualizar. Si nos quedabamos ahi, el ejercicio terminaba sin
+ningun cambio que comparar.
+
+El paquete que si tenia una razon concreta para actualizarse era `pip`, por
+las 7 vulnerabilidades que salieron en la seccion 3. Asi que hicimos esa
+actualizacion, que ademas es la que nosotros mismos propusimos en el plan de
+remediacion:
+
+```
+$ python -m pip install --upgrade pip
+  Attempting uninstall: pip
+    Found existing installation: pip 25.1.1
+    Uninstalling pip-25.1.1:
+      Successfully uninstalled pip-25.1.1
+Successfully installed pip-26.2.1
+```
+
+### ANTES
+
+- Dependencias: 43 paquetes en el entorno, 8 de la aplicacion.
+- Vulnerabilidades: 7 avisos, todos en `pip 25.1.1`. Las dependencias de la
+  aplicacion, limpias.
+- Versiones: `pip 25.1.1`, `requests 2.34.2`, `urllib3 2.7.0`,
+  `beautifulsoup4 4.15.0`.
+
+### DESPUES
+
+- Dependencias: 43 paquetes. La cantidad no cambio, actualizar `pip` no
+  agrego ni quito nada del arbol.
+- Vulnerabilidades: ninguna. `pip-audit` sobre todo el entorno ahora
+  devuelve `No known vulnerabilities found`, no solo sobre
+  `requirements.txt`.
+- Versiones: `pip 26.2.1`. Todo lo demas quedo igual.
+
+La unica linea que cambio en toda la comparacion es la version de `pip`, y
+con eso desaparecieron las 7 vulnerabilidades. Es el mejor caso posible de
+una actualizacion: arregla lo que tenia que arreglar y no toca nada mas.
+
+### Habia que regenerar requirements.txt?
+
+La guia dice que despues de actualizar hay que correr
+`pip freeze > requirements.txt`. Nosotros no lo hicimos a ciegas, por dos
+motivos.
+
+El primero es que en este entorno estan instaladas tambien `pipdeptree` y
+`pip-audit`, asi que un `pip freeze` habria escrito los 43 paquetes dentro
+del `requirements.txt` de la aplicacion, que es justo el problema que
+veniamos evitando con los dos archivos separados.
+
+El segundo es que no hacia falta. Comparamos las versiones instaladas de las
+8 dependencias de la aplicacion contra lo que ya decia el archivo y son
+identicas, no hay una sola diferencia. `pip` no aparece en `requirements.txt`
+(pip freeze no lo incluye nunca, es parte del entorno virtual, no una
+dependencia del proyecto), asi que actualizarlo no cambia el archivo.
+
+Conclusion: `requirements.txt` se quedo como estaba, y eso es correcto, no
+un olvido.
+
+### La aplicacion sigue funcionando?
+
+Esta es la verificacion que importa, y la hicimos con las mismas cuatro URLs
+del README:
+
+| URL | Resultado |
+|---|---|
+| elcomercio.pe | Titulo, 23100 caracteres, 3672 palabras |
+| rpp.pe | Titulo, 22380 caracteres, 3581 palabras |
+| larepublica.pe | Titulo, 14497 caracteres, 2377 palabras |
+| dominio inexistente | Mensaje de error controlado, no se cae |
+
+Los numeros de caracteres y palabras no dan exactamente igual que en las
+pruebas del README, pero eso no es culpa de la actualizacion: son portales
+de noticias y cambian el contenido de la portada cada pocos minutos. Los
+titulos, los acentos y el manejo del error siguen igual, que es lo que
+teniamos que comprobar.
+
+Ademas:
+
+```
+$ pip check
+No broken requirements found.
+```
+
+### Actualizar siempre soluciona el problema?
+
+No. En este caso salio bien, pero eso fue suerte del tamaño del proyecto.
+Actualizar un paquete puede romper la aplicacion si la version nueva cambia
+la API, puede pelearse con otra dependencia que necesitaba la version vieja,
+o puede cambiar un comportamiento sin avisar y que el error aparezca mucho
+despues. Por eso la parte de verificar no es opcional: sin correr la
+aplicacion despues, lo unico que sabemos es que el auditor esta contento.
+
 ## Anexo: demostracion controlada con una version vulnerable
 
 Esto es una prueba aparte, hecha a proposito, para ver como se ve un
