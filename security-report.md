@@ -86,6 +86,80 @@ documenta una demostracion controlada con una version de `urllib3` que si
 tiene vulnerabilidades conocidas, para dejar constancia de que sabemos leer
 e interpretar un resultado positivo de pip-audit.
 
+## 4. Plan de remediacion
+
+### Que hay que actualizar y por que
+
+Con los datos de `pip list --outdated`, en el entorno hay tres paquetes
+desactualizados:
+
+| Paquete | Instalada | Ultima | Es dependencia de la app? |
+|---|---|---|---|
+| `pip` | 25.1.1 | 26.2.1 | No, es el instalador del entorno |
+| `filelock` | 3.32.5 | 3.32.6 | No, la trae `pip-audit` |
+| `platformdirs` | 4.11.7 | 4.11.8 | No, la trae `pip-audit` |
+
+Ninguna de las 7 dependencias de la aplicacion aparece desactualizada, asi
+que por el lado de `requests`, `beautifulsoup4` y sus transitivas no hay
+nada urgente que remediar hoy.
+
+El unico caso que si amerita accion es `pip`. No es una dependencia de la
+aplicacion, pero es la herramienta con la que se instalan todas las demas, y
+tiene 7 avisos de seguridad publicados para la version 25.1.1 que trae el
+entorno virtual (PYSEC-2026-196, PYSEC-2026-1795, PYSEC-2026-1796,
+PYSEC-2026-2875, PYSEC-2026-2876 y PYSEC-2026-3721). Un instalador con
+vulnerabilidades conocidas es un problema de cadena de suministro por si
+solo: si alguien logra aprovechar un fallo en el proceso de instalacion,
+puede terminar metiendo codigo en el entorno sin que ninguna de las
+librerias auditadas se vea comprometida.
+
+Remediacion propuesta:
+
+```bash
+python -m pip install --upgrade pip
+```
+
+### Que riesgo tiene actualizar
+
+Actualizar no es gratis. Los riesgos concretos son:
+
+- Cambios de API: una version nueva puede quitar o renombrar funciones que
+  el codigo usaba. En esta aplicacion el riesgo es bajo porque solo usamos
+  `requests.get()` y `BeautifulSoup(...)`, que son la parte mas estable de
+  ambas librerias, pero en un proyecto grande no seria asi.
+- Conflictos entre dependencias: subir un paquete puede dejar a otro sin la
+  version que necesita. Por ejemplo, `requests` exige `urllib3>=1.26,<3`; si
+  se instalara `urllib3` 3.x, `requests` quedaria roto.
+- Cambios de comportamiento silenciosos: la funcion sigue existiendo y no
+  falla, pero devuelve algo distinto. Estos son los peores porque no se ven
+  hasta que algo raro pasa en produccion.
+
+Por eso el criterio no es "actualizar todo siempre", sino actualizar lo que
+tiene una razon (un aviso de seguridad, un bug que nos afecta) y verificar
+despues.
+
+### Como verificar que la actualizacion funciono
+
+Tres comprobaciones, en este orden:
+
+1. `pip-audit -r requirements.txt` para confirmar que la vulnerabilidad que
+   motivo la actualizacion ya no aparece.
+2. `pip check` para confirmar que no quedaron conflictos de versiones entre
+   paquetes. En el entorno actual devuelve:
+
+   ```
+   No broken requirements found.
+   ```
+
+3. Ejecutar la aplicacion contra las URLs de prueba documentadas en el
+   README (El Comercio, RPP, La Republica y el dominio inexistente) y
+   comprobar que sigue devolviendo titulo, caracteres, palabras y fecha, y
+   que el caso de error sigue mostrando el mensaje en vez de reventar.
+
+El paso 3 es el que suele saltarse y es el mas importante: `pip-audit` y
+`pip check` dicen que el entorno esta sano, pero no dicen si la aplicacion
+sigue funcionando.
+
 ## Anexo: demostracion controlada con una version vulnerable
 
 Esto es una prueba aparte, hecha a proposito, para ver como se ve un
