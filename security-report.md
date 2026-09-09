@@ -364,6 +364,89 @@ o puede cambiar un comportamiento sin avisar y que el error aparezca mucho
 despues. Por eso la parte de verificar no es opcional: sin correr la
 aplicacion despues, lo unico que sabemos es que el auditor esta contento.
 
+## 7. Preguntas de reflexion
+
+### 1. Cual es la diferencia entre dependencia directa y transitiva
+
+La directa es la que pedimos nosotros, a proposito. La transitiva llega
+porque otra la necesita.
+
+En este proyecto escribimos `pip install requests beautifulsoup4` y esas dos
+son las directas. Las otras seis (`certifi`, `charset-normalizer`, `idna`,
+`urllib3`, `soupsieve`, `typing_extensions`) nunca las escribimos en ningun
+lado, aparecieron solas. La diferencia no esta en el codigo, esta en quien
+tomo la decision: dos las decidimos nosotros y seis las decidieron los
+autores de `requests` y `beautifulsoup4` por nosotros.
+
+### 2. Por que pip freeze puede mostrar mas paquetes de los que aparecen en nuestro codigo
+
+Porque `pip freeze` lee el entorno virtual, no el codigo. No le importa si
+el paquete tiene un `import` en `app.py` o si nunca se usa, lo lista igual
+mientras este instalado.
+
+Nuestro `app.py` tiene tres imports (`requests`, `bs4` y `datetime`, y este
+ultimo es de la libreria estandar). El `requirements.txt` tiene ocho lineas.
+Y si corriamos `pip freeze` en el entorno donde estan las herramientas de
+analisis, salian 43. Los tres numeros son correctos, solo estan midiendo
+cosas distintas: lo que el codigo usa, lo que la aplicacion necesita
+instalado, y lo que hay en el entorno.
+
+### 3. Una aplicacion puede tener una vulnerabilidad aunque nuestro codigo no tenga ningun import de la libreria vulnerable
+
+Si, y `urllib3` es el ejemplo perfecto en este proyecto.
+
+En `app.py` no aparece la palabra `urllib3` por ningun lado. Pero cada vez
+que se ejecuta `requests.get(url, headers=HEADERS, timeout=10)`, quien abre
+la conexion, negocia el TLS y maneja los reintentos es `urllib3`. Si tiene
+un fallo, nuestra aplicacion lo tiene, aunque nosotros no lo hayamos
+importado ni sepamos que existe.
+
+En el anexo se ve concretamente: la version 1.26.5 de `urllib3` arrastra 10
+avisos de seguridad. Si nuestro entorno tuviera esa version en vez de la
+2.7.0, la aplicacion estaria expuesta sin que cambiara una sola linea de
+`app.py`.
+
+### 4. Actualizar todas las dependencias automaticamente es una buena estrategia
+
+No. Es tentador porque suena a estar siempre al dia, pero es tratar todos
+los cambios como si fueran iguales.
+
+En la Parte VIII se vio de los dos lados. Actualizar `pip` tenia una razon
+concreta (7 vulnerabilidades) y salio perfecto: desaparecieron los avisos y
+no se rompio nada. Actualizar `requests` no tenia ninguna razon, y el
+comando directamente no hizo nada porque ya estaba en la ultima version.
+Actualizar por actualizar habria sido puro ruido.
+
+El problema de automatizarlo todo es que una version nueva puede cambiar la
+API, puede chocar con otra dependencia que necesitaba la vieja, o puede
+cambiar un comportamiento sin avisar. Nuestro caso es chico y `requests.get`
+es de lo mas estable que hay, pero en un proyecto grande actualizar 40
+paquetes de golpe y que algo falle deja el problema de averiguar cual de los
+40 fue.
+
+Lo razonable es actualizar lo que tiene un motivo, y verificar despues.
+
+### 5. Por que las dependencias representan un riesgo para la Software Supply Chain
+
+Porque terminamos ejecutando muchisimo mas codigo ajeno del que revisamos, y
+ese codigo corre con los mismos permisos que el nuestro.
+
+El numero de este proyecto lo dice bastante claro: instalamos cuatro cosas a
+mano y el entorno quedo con 43 paquetes. Nadie del equipo leyo el codigo de
+esos 43, no sabemos quien los mantiene, y sin embargo cualquiera de ellos
+puede leer archivos, abrir conexiones o acceder a las variables de entorno
+igual que `app.py`.
+
+El riesgo tiene tres formas. La vulnerabilidad publicada, que es la mas
+manejable porque `pip-audit` la encuentra. El paquete comprometido a
+proposito, ya sea por una cuenta de mantenedor robada o por un nombre
+parecido al de uno legitimo, que es peor porque todavia no hay aviso que
+consultar. Y la licencia, que no rompe nada tecnicamente pero puede traer
+condiciones legales que nadie miro.
+
+Lo unico que controlamos de verdad es la lista de dependencias directas.
+Todo lo que viene detras lo heredamos.
+
 ## Anexo: demostracion controlada con una version vulnerable
 
 Esto es una prueba aparte, hecha a proposito, para ver como se ve un
