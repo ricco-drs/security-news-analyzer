@@ -51,7 +51,7 @@ confianza que si los hubieramos elegido nosotros.
 ## 3. Vulnerabilidades detectadas
 
 Se ejecuto `pip-audit -r requirements.txt` el 08/09/2026, es decir, auditando
-unicamente `requests`, `beautifulsoup4` y sus cinco transitivas, sin mezclar
+unicamente `requests`, `beautifulsoup4` y sus seis transitivas, sin mezclar
 las herramientas de analisis (`pipdeptree`, `pip-audit`) que tambien viven en
 el mismo entorno virtual.
 
@@ -65,7 +65,7 @@ No known vulnerabilities found
 |---|---|---|---|
 | - | - | Ninguna encontrada | - |
 
-Con las versiones actuales, ninguna de las 7 dependencias de la aplicacion
+Con las versiones actuales, ninguna de las 8 dependencias de la aplicacion
 tiene una vulnerabilidad conocida en la base de datos que consulta pip-audit.
 Esto no significa que la aplicacion sea inmune: solo dice que, a la fecha de
 esta auditoria, no hay ningun CVE/PYSEC publicado para estas versiones
@@ -100,15 +100,17 @@ desactualizados:
 | `filelock` | 3.32.5 | 3.32.6 | No, la trae `pip-audit` |
 | `platformdirs` | 4.11.7 | 4.11.8 | No, la trae `pip-audit` |
 
-Ninguna de las 7 dependencias de la aplicacion aparece desactualizada, asi
+Ninguna de las 8 dependencias de la aplicacion aparece desactualizada, asi
 que por el lado de `requests`, `beautifulsoup4` y sus transitivas no hay
 nada urgente que remediar hoy.
 
 El unico caso que si amerita accion es `pip`. No es una dependencia de la
 aplicacion, pero es la herramienta con la que se instalan todas las demas, y
 tiene 7 avisos de seguridad publicados para la version 25.1.1 que trae el
-entorno virtual (PYSEC-2026-196, PYSEC-2026-1795, PYSEC-2026-1796,
-PYSEC-2026-2875, PYSEC-2026-2876 y PYSEC-2026-3721). Un instalador con
+entorno virtual. En realidad son seis identificadores distintos
+(PYSEC-2026-196, PYSEC-2026-1795, PYSEC-2026-1796, PYSEC-2026-2875,
+PYSEC-2026-2876 y PYSEC-2026-3721), pero pip-audit los lista en siete filas
+porque PYSEC-2026-196 le aparece repetido en dos fuentes. Un instalador con
 vulnerabilidades conocidas es un problema de cadena de suministro por si
 solo: si alguien logra aprovechar un fallo en el proceso de instalacion,
 puede terminar metiendo codigo en el entorno sin que ninguna de las
@@ -559,8 +561,8 @@ pip-audit -r temp.txt
 publicados. El archivo `temp.txt` es un archivo local de un solo uso, para
 poder auditar unicamente esa version sin que se mezcle con `pip-audit`
 mismo (que tambien esta instalado en ese `.venv-demo` y, como se vio en la
-seccion anterior, tiene su propio ruido); no se sube al repositorio ni forma
-parte del entregable.
+seccion 3, tiene su propio ruido); no se sube al repositorio ni forma parte
+del entregable.
 
 Resultado real obtenido:
 
