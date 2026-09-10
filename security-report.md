@@ -448,6 +448,95 @@ condiciones legales que nadie miro.
 Lo unico que controlamos de verdad es la lista de dependencias directas.
 Todo lo que viene detras lo heredamos.
 
+## 8. Actividad grupal: detective de dependencias
+
+El caso que hay que resolver es este: una aplicacion Python tiene una alerta
+de seguridad, y el desarrollador responde que ninguna de las librerias que el
+instalo directamente tiene vulnerabilidades. La pregunta es si con eso alcanza
+para decir que la aplicacion es segura.
+
+Nos toco algo comodo para investigarlo, porque nuestro propio proyecto es
+exactamente ese caso. Cuando corrimos `pip-audit -r requirements.txt` el
+resultado fue `No known vulnerabilities found`, asi que nosotros podriamos
+decir la misma frase que el desarrollador del enunciado y no estariamos
+mintiendo. Igual fuimos punto por punto.
+
+### 1. Dependencias directas
+
+Dos: `requests==2.34.2` y `beautifulsoup4==4.15.0`. Son las unicas que
+alguien del equipo eligio.
+
+### 2. Dependencias transitivas
+
+Seis: `certifi`, `charset-normalizer`, `idna`, `urllib3`, `soupsieve` y
+`typing_extensions`.
+
+Aca ya aparece el primer problema con la afirmacion del desarrollador. De
+los 8 paquetes que necesita la aplicacion, el solo esta hablando de 2. Se
+esta dejando fuera del analisis el 75% del arbol.
+
+### 3. Versiones instaladas
+
+Todas fijadas con `==` en `requirements.txt`, ninguna con rango abierto. Eso
+al menos garantiza que instalar el proyecto hoy o en tres meses da el mismo
+resultado, que es lo minimo para que una auditoria sirva de algo. Si las
+versiones fueran flotantes, el `pip-audit` de hoy no diria nada sobre lo que
+se instale mañana.
+
+### 4. Vulnerabilidades
+
+Sobre las 8 dependencias de la aplicacion, ninguna. Sobre el entorno
+completo, 7 avisos, todos en `pip 25.1.1`.
+
+Este es el punto que rompe el argumento del desarrollador. `pip` no es una
+libreria que el instalo, viene con el entorno virtual, asi que su frase
+sigue siendo literalmente cierta y aun asi habia 7 vulnerabilidades ahi
+adentro. La afirmacion era verdadera y el entorno estaba comprometido igual.
+
+### 5. Dependencias que requieren actualizacion
+
+`pip list --outdated` marcaba tres: `pip`, `filelock` y `platformdirs`.
+Ninguna de la aplicacion. `pip` ya lo actualizamos en la Parte VIII y con eso
+desaparecieron los 7 avisos. `filelock` y `platformdirs` son de `pip-audit`,
+estan una version parche por detras y no tienen ningun aviso asociado, asi
+que se pueden dejar.
+
+### 6. Posibles conflictos
+
+`pip check` devuelve `No broken requirements found`, o sea que hoy no hay
+ninguno. Pero mirando el arbol se ve donde podria aparecer uno: `requests`
+pide `urllib3>=1.26,<3` y tenemos la 2.7.0. Si algun dia hiciera falta subir
+a `urllib3` 3.x por un aviso de seguridad, `requests` no lo aceptaria y
+habria que esperar a que sacaran una version compatible. Ahi la
+actualizacion dejaria de ser un comando y pasaria a ser un problema.
+
+### 7. Riesgos para la aplicacion
+
+El riesgo real no es ninguna vulnerabilidad concreta de hoy, porque hoy no
+hay. Es que el equipo cree estar mirando 2 paquetes cuando en realidad
+depende de 8, y que el entorno donde todo esto corre tiene 43. Lo que no se
+mira no se actualiza.
+
+### Conclusion
+
+La afirmacion del desarrollador no alcanza, por tres razones distintas.
+
+La primera es que solo cubre las dependencias directas, y esas son la
+minoria. En nuestro caso 2 de 8. El codigo de `urllib3` se ejecuta en cada
+peticion aunque nadie lo haya elegido ni escrito un `import`.
+
+La segunda es que ni siquiera cubre todo lo que hay instalado. `pip` no es
+una dependencia declarada en ningun archivo y tenia 7 avisos publicados.
+
+Y la tercera es que la frase esta en presente. Un `pip-audit` limpio dice
+que hoy no hay nada publicado para esas versiones exactas, no que no vaya a
+haberlo. El resultado puede cambiar sin que nadie toque el codigo, solo
+porque alguien publico un aviso.
+
+Para responder de verdad si la aplicacion es segura habria que auditar el
+arbol completo, no las directas, y hacerlo de forma periodica en vez de una
+sola vez.
+
 ## Anexo: demostracion controlada con una version vulnerable
 
 Esto es una prueba aparte, hecha a proposito, para ver como se ve un
