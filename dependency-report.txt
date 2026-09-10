@@ -172,6 +172,7 @@ pip          25.1.1  26.2.1 wheel
 platformdirs 4.11.7  4.11.8 wheel
 
 === pip-audit (entorno completo, incluye herramientas de analisis) ===
+Found 7 known vulnerabilities in 1 package
 Name Version ID              Fix Versions
 ---- ------- --------------- ------------
 pip  25.1.1  PYSEC-2026-196  26.1.2
@@ -183,3 +184,24 @@ pip  25.1.1  PYSEC-2026-2876 26.1
 pip  25.1.1  PYSEC-2026-3721 26.2
 
 === pip-audit -r requirements.txt (solo dependencias de la aplicacion) ===
+No known vulnerabilities found
+
+################################################################
+# ESTADO DESPUES DE LA PARTE VIII (upgrade de pip 25.1.1 -> 26.2.1)
+# Todo lo de arriba corresponde al estado ANTES de esa actualizacion.
+################################################################
+
+=== pip list --outdated (despues) ===
+Package      Version Latest Type
+------------ ------- ------ -----
+filelock     3.32.5  3.32.6 wheel
+platformdirs 4.11.7  4.11.8 wheel
+
+=== pip-audit (entorno completo, despues) ===
+No known vulnerabilities found
+
+=== pip-audit -r requirements.txt (despues) ===
+No known vulnerabilities found
+
+=== pip check (despues) ===
+No broken requirements found.

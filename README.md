@@ -81,9 +81,9 @@ Ingrese una URL: https://www.python.org/
 Resultado
 ----------------------------------------
 Titulo: Welcome to Python.org
-Caracteres: 4821
-Palabras: 712
-Fecha: 2026-09-08 19:42:11
+Caracteres: 6678
+Palabras: 1119
+Fecha: 2026-09-09 21:42:12
 ```
 
 Si la URL no se puede acceder (dominio inexistente, timeout, error del

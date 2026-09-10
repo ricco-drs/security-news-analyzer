@@ -74,12 +74,13 @@ mañana con un aviso de seguridad y el resultado cambiaria sin que nosotros
 tocaramos una sola linea de codigo.
 
 Como nota aparte, correr `pip-audit` sin el flag `-r` (es decir, contra todo
-el entorno virtual) si reporta 7 vulnerabilidades, pero todas pertenecen a
-`pip` (el propio instalador de paquetes, que viene con el venv), no a las
-dependencias de la aplicacion. Ese resultado esta documentado igual en
-`dependency-report.txt` para que quede como evidencia, pero no se cuenta
-aca porque `pip` no es una dependencia de Security News Analyzer, es la
-herramienta con la que se instalan las dependencias.
+el entorno virtual) si reportaba 7 vulnerabilidades en ese momento, pero
+todas pertenecian a `pip` (el propio instalador de paquetes, que viene con
+el venv), no a las dependencias de la aplicacion. Ese resultado esta
+documentado igual en `dependency-report.txt` para que quede como evidencia,
+pero no se cuenta aca porque `pip` no es una dependencia de Security News
+Analyzer, es la herramienta con la que se instalan las dependencias. En la
+seccion 6 se ve como quedo ese mismo comando despues de actualizar `pip`.
 
 Como la tabla de esta seccion queda vacia con el entorno real, mas abajo se
 documenta una demostracion controlada con una version de `urllib3` que si
