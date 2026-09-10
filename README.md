@@ -9,6 +9,13 @@ Python con pip. La aplicacion en si es simple; lo que se evalua en el
 laboratorio es el manejo del arbol de dependencias que se genera al instalar
 requests y beautifulsoup4.
 
+## Integrantes
+
+| Integrante | Usuario GitHub | Responsabilidad |
+|---|---|---|
+| Christopher Henrry Albino Soto | Christopher-Albino | Aplicacion, entorno virtual y requirements |
+| Ricco Didier Rashuaman Sapallanay | ricco-drs | Analisis de dependencias, auditoria de seguridad e informes |
+
 ## Requisitos
 
 - Python 3.13 o superior
