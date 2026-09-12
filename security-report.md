@@ -1,23 +1,23 @@
 # Informe de seguridad - Security News Analyzer
 
-Este informe analiza el arbol de dependencias de la aplicacion, generado a
-partir de las dos librerias que se instalaron directamente: `requests` y
-`beautifulsoup4`. Los datos vienen de `dependency-report.txt`, que contiene
-la salida literal de `pip list`, `pipdeptree`, `pip list --outdated` y
-`pip-audit`.
+Este informe es el analisis de las dependencias de la aplicacion. Los datos
+salen todos de `dependency-report.txt`, que tiene la salida tal cual de
+`pip list`, `pipdeptree`, `pip list --outdated` y `pip-audit`. Aca lo que
+hacemos es explicar que significa eso.
 
 ## 1. Dependencias directas
 
-Son las que estan escritas explicitamente en `requirements.txt`, las que el
-equipo instalo a proposito para construir la aplicacion:
+Las que pusimos nosotros en `requirements.txt` a proposito:
 
 - `requests==2.34.2`
 - `beautifulsoup4==4.15.0`
 
+Y ya, son solo esas dos.
+
 ## 2. Dependencias transitivas
 
-Ninguna de estas se instalo a mano. Llegaron porque `requests` y
-`beautifulsoup4` las necesitan para funcionar:
+Estas no las instalamos nosotros. Vienen porque `requests` y
+`beautifulsoup4` las necesitan para poder funcionar:
 
 ```
 requests==2.34.2
@@ -31,29 +31,30 @@ beautifulsoup4==4.15.0
 └── typing_extensions==4.16.0
 ```
 
-En resumen, la aplicacion depende de 2 paquetes que el equipo eligio y otros
-6 que ninguno de los dos instalo directamente:
+O sea, de los 8 paquetes que terminan en el `requirements.txt`, solo 2 los
+elegimos a proposito. Los otros 6 los trajo pip solo. Rapido, para que
+quede claro para que sirve cada uno:
 
-- `certifi` da la lista de autoridades certificadoras para validar HTTPS.
-- `charset-normalizer` detecta la codificacion del contenido cuando el
-  servidor no la declara bien (por eso `response.apparent_encoding` funciona).
-- `idna` traduce dominios con caracteres no ASCII.
-- `urllib3` es el cliente HTTP de bajo nivel que usa `requests` por debajo.
-- `soupsieve` le da a BeautifulSoup el soporte de selectores CSS.
-- `typing_extensions` son anotaciones de tipos que beautifulsoup4 usa
-  internamente.
+`certifi` trae la lista de autoridades certificadoras para que las
+conexiones HTTPS se puedan validar. `charset-normalizer` es el que detecta
+la codificacion cuando el servidor no la manda bien en la cabecera (por eso
+funciona lo de `response.apparent_encoding` en `app.py`). `idna` sirve para
+traducir dominios que tienen caracteres no ASCII. `urllib3` es el que en
+realidad abre la conexion HTTP, `requests` es como una capa mas facil de
+usar encima de el. `soupsieve` le da a BeautifulSoup los selectores tipo
+CSS. Y `typing_extensions` son anotaciones de tipos que usa beautifulsoup4
+por dentro, nosotros nunca las tocamos.
 
-Esto es justamente lo que pide identificar el laboratorio: de los 8 paquetes
-instalados en el entorno, solo 2 aparecen en el codigo con un `import`
-directo. Los otros 6 estan ahi igual, ejecutandose con el mismo nivel de
-confianza que si los hubieramos elegido nosotros.
+Ese es justo el punto que quiere que veamos el laboratorio: nuestro codigo
+solo tiene un `import requests` y un `import beautifulsoup4`, pero el
+entorno esta corriendo 8 paquetes, no 2.
 
 ## 3. Vulnerabilidades detectadas
 
-Se ejecuto `pip-audit -r requirements.txt` el 08/09/2026, es decir, auditando
-unicamente `requests`, `beautifulsoup4` y sus seis transitivas, sin mezclar
-las herramientas de analisis (`pipdeptree`, `pip-audit`) que tambien viven en
-el mismo entorno virtual.
+Corrimos `pip-audit -r requirements.txt`, o sea auditando solo las 8
+dependencias de la aplicacion (las 2 directas y sus 6 transitivas), sin
+meter en la mezcla las herramientas de analisis que tambien tenemos
+instaladas en el mismo entorno.
 
 Resultado:
 
@@ -65,192 +66,175 @@ No known vulnerabilities found
 |---|---|---|---|
 | - | - | Ninguna encontrada | - |
 
-Con las versiones actuales, ninguna de las 8 dependencias de la aplicacion
-tiene una vulnerabilidad conocida en la base de datos que consulta pip-audit.
-Esto no significa que la aplicacion sea inmune: solo dice que, a la fecha de
-esta auditoria, no hay ningun CVE/PYSEC publicado para estas versiones
-puntuales. Una nueva version de alguna de estas librerias podria salir
-mañana con un aviso de seguridad y el resultado cambiaria sin que nosotros
-tocaramos una sola linea de codigo.
+Osea que ninguna de las 8 tiene, hoy, un CVE o PYSEC publicado para la
+version que tenemos instalada. Eso no quiere decir que sean invulnerables
+para siempre, solo que a la fecha de esta auditoria no hay nada reportado.
+Puede salir un aviso mañana mismo sin que nosotros cambiemos nada.
 
-Como nota aparte, correr `pip-audit` sin el flag `-r` (es decir, contra todo
-el entorno virtual) si reportaba 7 vulnerabilidades en ese momento, pero
-todas pertenecian a `pip` (el propio instalador de paquetes, que viene con
-el venv), no a las dependencias de la aplicacion. Ese resultado esta
-documentado igual en `dependency-report.txt` para que quede como evidencia,
-pero no se cuenta aca porque `pip` no es una dependencia de Security News
-Analyzer, es la herramienta con la que se instalan las dependencias. En la
-seccion 6 se ve como quedo ese mismo comando despues de actualizar `pip`.
+Ahora, algo que nos parecio importante dejar anotado: si en vez de
+`-r requirements.txt` corremos `pip-audit` a secas (sobre todo el entorno
+virtual), en ese momento si salian 7 avisos, pero todos eran de `pip`, el
+instalador de paquetes. Ese resultado tambien esta guardado en
+`dependency-report.txt` como evidencia, pero no lo contamos en la tabla de
+arriba porque `pip` no es una dependencia de la aplicacion, es la
+herramienta con la que se instalan las dependencias. Mas adelante, en la
+seccion 6, mostramos que paso con eso despues de actualizarlo.
 
-Como la tabla de esta seccion queda vacia con el entorno real, mas abajo se
-documenta una demostracion controlada con una version de `urllib3` que si
-tiene vulnerabilidades conocidas, para dejar constancia de que sabemos leer
-e interpretar un resultado positivo de pip-audit.
+Y como la tabla de vulnerabilidades nos quedo vacia (que en realidad es
+buena noticia, pero mala para el ejercicio de "leer una tabla llena"), mas
+abajo hicimos aparte una prueba con una version vieja de `urllib3` que si
+tiene vulnerabilidades, para demostrar que sabemos interpretar un resultado
+cuando si aparece algo.
 
 ## 4. Plan de remediacion
 
-### Que hay que actualizar y por que
+### Que actualizar y por que
 
-Con los datos de `pip list --outdated`, en el entorno hay tres paquetes
-desactualizados:
+`pip list --outdated` marco tres paquetes desactualizados en el entorno:
 
-| Paquete | Instalada | Ultima | Es dependencia de la app? |
+| Paquete | Instalada | Ultima | Es de la aplicacion? |
 |---|---|---|---|
-| `pip` | 25.1.1 | 26.2.1 | No, es el instalador del entorno |
+| `pip` | 25.1.1 | 26.2.1 | No, es el instalador |
 | `filelock` | 3.32.5 | 3.32.6 | No, la trae `pip-audit` |
 | `platformdirs` | 4.11.7 | 4.11.8 | No, la trae `pip-audit` |
 
-Ninguna de las 8 dependencias de la aplicacion aparece desactualizada, asi
-que por el lado de `requests`, `beautifulsoup4` y sus transitivas no hay
-nada urgente que remediar hoy.
+Ninguna de las 8 dependencias de la app aparece ahi, asi que de ese lado no
+hay nada urgente.
 
-El unico caso que si amerita accion es `pip`. No es una dependencia de la
-aplicacion, pero es la herramienta con la que se instalan todas las demas, y
-tiene 7 avisos de seguridad publicados para la version 25.1.1 que trae el
-entorno virtual. En realidad son seis identificadores distintos
-(PYSEC-2026-196, PYSEC-2026-1795, PYSEC-2026-1796, PYSEC-2026-2875,
-PYSEC-2026-2876 y PYSEC-2026-3721), pero pip-audit los lista en siete filas
-porque PYSEC-2026-196 le aparece repetido en dos fuentes. Un instalador con
-vulnerabilidades conocidas es un problema de cadena de suministro por si
-solo: si alguien logra aprovechar un fallo en el proceso de instalacion,
-puede terminar metiendo codigo en el entorno sin que ninguna de las
-librerias auditadas se vea comprometida.
+El que si necesitaba actualizarse era `pip`. Tenia 7 avisos de seguridad
+publicados para la 25.1.1 (en realidad son 6 avisos distintos:
+PYSEC-2026-196, PYSEC-2026-1795, PYSEC-2026-1796, PYSEC-2026-2875,
+PYSEC-2026-2876 y PYSEC-2026-3721, pero pip-audit lista PYSEC-2026-196 dos
+veces porque le llega de dos fuentes distintas, asi que en la tabla salen
+7 filas). Aunque no es una dependencia nuestra, es la herramienta con la
+que se instala todo lo demas, y un instalador con fallas conocidas ya es
+un problema de cadena de suministro por si solo.
 
-Remediacion propuesta:
+Lo que hicimos:
 
 ```bash
 python -m pip install --upgrade pip
 ```
 
-### Que riesgo tiene actualizar
+### Riesgo de actualizar
 
-Actualizar no es gratis. Los riesgos concretos son:
+No es gratis actualizar asi nomas. Puede pasar que:
 
-- Cambios de API: una version nueva puede quitar o renombrar funciones que
-  el codigo usaba. En esta aplicacion el riesgo es bajo porque solo usamos
-  `requests.get()` y `BeautifulSoup(...)`, que son la parte mas estable de
-  ambas librerias, pero en un proyecto grande no seria asi.
-- Conflictos entre dependencias: subir un paquete puede dejar a otro sin la
-  version que necesita. Por ejemplo, `requests` exige `urllib3>=1.26,<3`; si
-  se instalara `urllib3` 3.x, `requests` quedaria roto.
-- Cambios de comportamiento silenciosos: la funcion sigue existiendo y no
-  falla, pero devuelve algo distinto. Estos son los peores porque no se ven
-  hasta que algo raro pasa en produccion.
+- Cambie la API y una funcion que usabamos ya no exista o se llame
+  distinto. Aca el riesgo es bajo porque en `app.py` solo usamos
+  `requests.get()` y `BeautifulSoup(...)`, que son de lo mas estable que
+  tienen esas librerias, pero en un proyecto mas grande esto pesa mas.
+- Se genere un conflicto con otra dependencia. Por ejemplo `requests` pide
+  `urllib3>=1.26,<3`, entonces si alguien instalara `urllib3` en su version
+  3, `requests` se rompe.
+- Cambie el comportamiento sin que nadie se de cuenta al toque, que es lo
+  peor porque el error puede aparecer recien despues, en produccion.
 
-Por eso el criterio no es "actualizar todo siempre", sino actualizar lo que
-tiene una razon (un aviso de seguridad, un bug que nos afecta) y verificar
-despues.
+Por eso no se trata de actualizar todo siempre, sino de actualizar lo que
+tiene un motivo real (un aviso de seguridad, un bug que nos afecta a
+nosotros) y despues verificar que nada se rompio.
 
-### Como verificar que la actualizacion funciono
+### Como verificamos que funciono
 
-Tres comprobaciones, en este orden:
+Hicimos tres cosas:
 
-1. `pip-audit -r requirements.txt` para confirmar que la vulnerabilidad que
-   motivo la actualizacion ya no aparece.
-2. `pip check` para confirmar que no quedaron conflictos de versiones entre
-   paquetes. En el entorno actual devuelve:
+1. Volver a correr `pip-audit -r requirements.txt` para confirmar que ya no
+   sale la vulnerabilidad.
+2. `pip check`, que nos dice si quedo algun conflicto de versiones entre
+   paquetes. Devolvio:
 
    ```
    No broken requirements found.
    ```
 
-3. Ejecutar la aplicacion contra las URLs de prueba documentadas en el
-   README (El Comercio, RPP, La Republica y el dominio inexistente) y
-   comprobar que sigue devolviendo titulo, caracteres, palabras y fecha, y
-   que el caso de error sigue mostrando el mensaje en vez de reventar.
+3. Correr la aplicacion contra las mismas URLs de prueba del README (El
+   Comercio, RPP, La Republica y el dominio que no existe) para ver que
+   siga devolviendo titulo, caracteres, palabras y fecha bien, y que el
+   error siga mostrandose controlado.
 
-El paso 3 es el que suele saltarse y es el mas importante: `pip-audit` y
-`pip check` dicen que el entorno esta sano, pero no dicen si la aplicacion
-sigue funcionando.
+El paso 3 es el que mas facil se salta, y para nosotros es el mas
+importante: que `pip-audit` y `pip check` digan que todo esta bien no
+significa que la aplicacion siga corriendo.
 
 ## 5. Analisis de Software Supply Chain
 
-### El caso planteado en el laboratorio
+### El caso del laboratorio
 
-Una aplicacion tiene 15 dependencias directas, y esas 15 requieren otras 80
-librerias. La pregunta es cuantos componentes de terceros forman realmente
-parte de la aplicacion.
+Una app tiene 15 dependencias directas, y esas 15 arrastran otras 80
+librerias mas. La pregunta es cuantos componentes de terceros forman parte
+realmente de esa aplicacion.
 
-La respuesta es 95, no 15. El equipo eligio 15 y reviso 15, pero lo que
-termina ejecutandose en produccion son 95 paquetes escritos por gente que el
-equipo no conoce, ninguno de los cuales pidio permiso para entrar. Y ese
-numero es el minimo: cada una de las 80 puede traer las suyas propias.
+La respuesta es 95, no 15. Uno elige y revisa 15, pero en produccion
+terminan corriendo 95 paquetes que escribio gente que uno ni conoce. Y ese
+95 es el piso, porque cada una de esas 80 puede traer las suyas propias
+tambien.
 
-### Lo mismo medido en este proyecto
+### Lo mismo pero con nuestro proyecto
 
-No hace falta irse a un caso hipotetico, en este laboratorio pasa igual:
+No hace falta pensarlo en abstracto, a nosotros nos paso lo mismo a
+escala chica:
 
 | | Cantidad |
 |---|---|
-| Paquetes que instalamos a mano | 4 (`requests`, `beautifulsoup4`, `pipdeptree`, `pip-audit`) |
-| Paquetes en `requirements.txt` (la app) | 8 |
+| Paquetes instalados a mano | 4 (`requests`, `beautifulsoup4`, `pipdeptree`, `pip-audit`) |
+| Paquetes en `requirements.txt` (solo la app) | 8 |
 | Paquetes totales en el entorno virtual | 43 |
 
-Por el lado de la aplicacion, 2 decisiones se convirtieron en 8 paquetes:
-por cada libreria que elegimos, entraron 3 que no elegimos.
+De la aplicacion en si: elegimos 2 librerias y terminamos con 8 en total,
+osea que por cada una que elegimos entraron 3 que no.
 
-El dato mas incomodo es el otro. `pipdeptree` y `pip-audit`, las dos
-herramientas que instalamos justamente para auditar la cadena de suministro,
-arrastraron por si solas unos 35 paquetes mas (`rich`, `Pygments`,
-`cyclonedx-python-lib`, toda la familia `nab-*`, etc.). Es decir, las
-herramientas de seguridad tambien son cadena de suministro. Auditar tiene su
-propio costo en superficie de ataque, y eso es exactamente lo que motiva
-mantener `requirements.txt` y `requirements-dev.txt` separados: lo que se
-instala para analizar no tiene por que viajar al entorno donde corre la
-aplicacion.
+Pero el dato que mas nos llamo la atencion fue el otro. `pipdeptree` y
+`pip-audit`, que son las herramientas que instalamos justamente para
+auditar la cadena de suministro, trajeron solas como 35 paquetes mas
+(`rich`, `Pygments`, `cyclonedx-python-lib`, toda la familia de `nab-*`,
+etc). O sea que las herramientas de seguridad tambien son parte de la
+cadena de suministro, tienen su propio riesgo. Y esto es justo el motivo
+por el que separamos `requirements.txt` de `requirements-dev.txt`: lo que
+se instala solo para analizar no deberia mezclarse con lo que corre la
+aplicacion de verdad.
 
-### Quien es responsable de una vulnerabilidad en una dependencia transitiva
+### Quien responde por una vulnerabilidad en una transitiva
 
-Esta es la pregunta de la Parte VII, y la respuesta corta es: el equipo que
-mantiene la aplicacion.
+Esta pregunta la hace el laboratorio en la Parte VII y la respuesta es: el
+equipo que mantiene la aplicacion, aunque no la haya elegido.
 
-Nuestro codigo no tiene ni un solo `import urllib3`. Nunca lo elegimos, no
-sabemos quien lo mantiene, no leimos su codigo. Pero si mañana sale un aviso
-de seguridad para la version de `urllib3` que tenemos instalada, la
-aplicacion esta expuesta, porque cada `requests.get()` que hace `app.py`
-termina ejecutando codigo de `urllib3`. El usuario final no distingue entre
-"nuestro codigo" y "codigo que vino de arrastre": para el es una sola
-aplicacion.
+En `app.py` no hay ni un `import urllib3`. Nadie del equipo la eligio, no
+sabemos ni quien la mantiene. Pero si mañana le sale un aviso de seguridad
+a la version que tenemos instalada, nuestra app queda expuesta igual,
+porque cada vez que se llama `requests.get()` por debajo se esta corriendo
+codigo de `urllib3`. Al usuario final no le importa si el fallo vino de
+"nuestro" codigo o de algo que arrastramos, para el es una sola cosa que
+no funciona.
 
-Quien publica el parche es el mantenedor de `urllib3`, pero quien tiene que
-enterarse, evaluar si le afecta, actualizar y verificar que nada se rompio
-es el equipo de la aplicacion. La responsabilidad de escribir el arreglo y
-la responsabilidad de aplicarlo son cosas distintas, y la segunda no se
-delega.
+El que arregla el bug es el mantenedor de `urllib3`, pero enterarse de que
+existe, ver si nos afecta, actualizar y confirmar que no se rompio nada, es
+trabajo nuestro. Eso no se le puede pasar a nadie mas.
 
-### Por que esto es un riesgo y que se puede hacer
+### Por que es un riesgo y que podemos hacer
 
-Todo ese codigo de terceros se ejecuta con los mismos permisos que el
-nuestro: mismo proceso, mismo acceso a disco, misma red, mismas variables de
-entorno. No hay ninguna barrera entre `app.py` y la libreria numero 43 del
-entorno.
+Todo ese codigo de terceros corre con los mismos permisos que el nuestro,
+mismo proceso, mismo acceso a disco y a la red. No hay ninguna pared entre
+`app.py` y el paquete numero 43 del entorno.
 
-Los riesgos concretos son tres:
+Los riesgos son basicamente tres. Uno, que tenga una vulnerabilidad
+publicada, que es el mas facil de agarrar porque `pip-audit` lo encuentra.
+Dos, que sea un paquete comprometido a proposito (le robaron la cuenta al
+mantenedor, o alguien subio uno con un nombre parecido, tipo `requestss` en
+vez de `requests`) y ahi `pip-audit` no ayuda porque todavia no hay ningun
+aviso de eso. Y tres, temas de licencia, que no rompe nada tecnicamente
+pero puede meter condiciones legales que nadie reviso.
 
-- Vulnerabilidades, que es lo que busca `pip-audit`. Son las mas faciles de
-  detectar porque estan publicadas.
-- Paquetes comprometidos a proposito: una cuenta de mantenedor robada, o un
-  paquete con nombre parecido a uno legitimo (`requestss` en vez de
-  `requests`). Aca `pip-audit` no ayuda, porque el codigo malicioso es nuevo
-  y todavia no hay aviso publicado.
-- Licencias: una dependencia transitiva puede traer condiciones legales que
-  nadie reviso al instalarla.
-
-Lo que si esta a nuestro alcance en un proyecto de este tamaño:
-
-- Fijar versiones exactas en `requirements.txt` con `==`, para que instalar
-  hoy y instalar en tres meses den el mismo resultado.
-- Correr `pip-audit` de forma regular y no una sola vez, porque el resultado
-  cambia solo, sin que nadie toque el codigo.
-- Mirar el arbol con `pipdeptree` antes de agregar una dependencia nueva:
-  una libreria que resuelve algo pequeño pero arrastra veinte paquetes
-  probablemente no valga la pena.
-- Tener el menor numero posible de dependencias directas, que es la unica
-  parte de la cadena que realmente controlamos.
+Lo que si podemos hacer en un proyecto de este tamaño: fijar versiones
+exactas con `==` para que instalar hoy o en tres meses de exactamente lo
+mismo, correr `pip-audit` seguido y no solo una vez (porque el resultado
+cambia solo, sin que nadie toque codigo), mirar el arbol con `pipdeptree`
+antes de meter una libreria nueva (si resuelve algo chiquito pero arrastra
+veinte paquetes, capaz no vale la pena), y tratar de tener pocas
+dependencias directas, porque es lo unico que realmente controlamos.
 
 ## 6. Parte VIII: comparacion antes y despues de actualizar
 
-Lo primero fue ver que habia desactualizado en el entorno:
+Primero vimos que estaba desactualizado:
 
 ```
 $ pip list --outdated
@@ -261,8 +245,8 @@ pip          25.1.1  26.2.1 wheel
 platformdirs 4.11.7  4.11.8 wheel
 ```
 
-Ninguna dependencia de la aplicacion aparece en esa lista. Aun asi corrimos
-el comando que pide la guia:
+Ninguna dependencia de la app sale ahi. Igual corrimos el comando que pide
+la guia:
 
 ```
 $ pip install --upgrade requests
@@ -273,15 +257,13 @@ Requirement already satisfied: urllib3<3,>=1.26 ... (2.7.0)
 Requirement already satisfied: certifi>=2023.5.7 ... (2026.7.22)
 ```
 
-`requests` ya estaba en la ultima version, asi que el comando no hizo nada.
-Esto ya deja algo: ejecutar el comando de actualizar no significa que haya
-algo para actualizar. Si nos quedabamos ahi, el ejercicio terminaba sin
-ningun cambio que comparar.
+`requests` ya estaba en su ultima version, entonces no hizo nada. Eso
+tambien es una respuesta valida: correr el comando de actualizar no
+significa que haya algo que actualizar.
 
-El paquete que si tenia una razon concreta para actualizarse era `pip`, por
-las 7 vulnerabilidades que salieron en la seccion 3. Asi que hicimos esa
-actualizacion, que ademas es la que nosotros mismos propusimos en el plan de
-remediacion:
+Lo que si tenia sentido actualizar era `pip`, por las 7 vulnerabilidades
+de la seccion 3 (y porque nosotros mismos lo propusimos en el plan de
+remediacion):
 
 ```
 $ python -m pip install --upgrade pip
@@ -292,66 +274,63 @@ $ python -m pip install --upgrade pip
 Successfully installed pip-26.2.1
 ```
 
-### ANTES
+### Antes
 
-- Dependencias: 43 paquetes en el entorno, 8 de la aplicacion.
-- Vulnerabilidades: 7 avisos, todos en `pip 25.1.1`. Las dependencias de la
-  aplicacion, limpias.
-- Versiones: `pip 25.1.1`, `requests 2.34.2`, `urllib3 2.7.0`,
-  `beautifulsoup4 4.15.0`.
+- 43 paquetes en el entorno, 8 de la aplicacion.
+- 7 avisos de seguridad, todos en `pip 25.1.1`. Las dependencias de la app,
+  limpias.
+- `pip 25.1.1`, `requests 2.34.2`, `urllib3 2.7.0`, `beautifulsoup4 4.15.0`.
 
-### DESPUES
+### Despues
 
-- Dependencias: 43 paquetes. La cantidad no cambio, actualizar `pip` no
-  agrego ni quito nada del arbol.
-- Vulnerabilidades: ninguna. `pip-audit` sobre todo el entorno ahora
-  devuelve `No known vulnerabilities found`, no solo sobre
-  `requirements.txt`.
-- Versiones: `pip 26.2.1`. Todo lo demas quedo igual.
+- Siguen siendo 43 paquetes, actualizar `pip` no agrega ni quita nada del
+  arbol.
+- `pip-audit` sobre todo el entorno ahora dice `No known vulnerabilities
+  found`, ya no solo sobre `requirements.txt`.
+- `pip 26.2.1`. Todo lo demas quedo tal cual.
 
-La unica linea que cambio en toda la comparacion es la version de `pip`, y
-con eso desaparecieron las 7 vulnerabilidades. Es el mejor caso posible de
-una actualizacion: arregla lo que tenia que arreglar y no toca nada mas.
+En resumen lo unico que cambio fue la version de pip, y con eso solo ya se
+fueron las 7 vulnerabilidades. Nos parece el mejor escenario que nos podia
+tocar: arreglo lo que tenia que arreglar y no rompio nada al lado.
 
-### Habia que regenerar requirements.txt?
+### Y el requirements.txt, habia que regenerarlo?
 
-La guia dice que despues de actualizar hay que correr
-`pip freeze > requirements.txt`. Nosotros no lo hicimos a ciegas, por dos
-motivos.
+La guia dice que despues de actualizar toca correr
+`pip freeze > requirements.txt`. Nosotros lo pensamos dos veces antes de
+hacerlo asi nomas.
 
-El primero es que en este entorno estan instaladas tambien `pipdeptree` y
-`pip-audit`, asi que un `pip freeze` habria escrito los 43 paquetes dentro
-del `requirements.txt` de la aplicacion, que es justo el problema que
-veniamos evitando con los dos archivos separados.
+Primero porque en este mismo entorno tambien tenemos instaladas
+`pipdeptree` y `pip-audit`, entonces un `pip freeze` iba a meter los 43
+paquetes dentro del `requirements.txt` de la app, que es justo lo que
+veniamos evitando desde que separamos los dos archivos.
 
-El segundo es que no hacia falta. Comparamos las versiones instaladas de las
-8 dependencias de la aplicacion contra lo que ya decia el archivo y son
-identicas, no hay una sola diferencia. `pip` no aparece en `requirements.txt`
-(pip freeze no lo incluye nunca, es parte del entorno virtual, no una
-dependencia del proyecto), asi que actualizarlo no cambia el archivo.
+Y segundo porque no hacia falta: comparamos las 8 versiones instaladas
+contra lo que ya decia el archivo y son exactamente las mismas. `pip` ni
+siquiera aparece ahi (pip freeze nunca lo mete, es del entorno virtual, no
+una dependencia del proyecto), asi que actualizarlo no cambia nada del
+archivo.
 
-Conclusion: `requirements.txt` se quedo como estaba, y eso es correcto, no
-un olvido.
+O sea que `requirements.txt` se quedo igual, y eso fue a proposito, no que
+se nos olvido hacerlo.
 
-### La aplicacion sigue funcionando?
+### La app sigue funcionando?
 
-Esta es la verificacion que importa, y la hicimos con las mismas cuatro URLs
-del README:
+Aca esta la parte que de verdad importa. Probamos con las mismas cuatro
+URLs del README:
 
 | URL | Resultado |
 |---|---|
-| elcomercio.pe | Titulo, 23100 caracteres, 3672 palabras |
-| rpp.pe | Titulo, 22380 caracteres, 3581 palabras |
-| larepublica.pe | Titulo, 14497 caracteres, 2377 palabras |
+| elcomercio.pe | Titulo bien, 23100 caracteres, 3672 palabras |
+| rpp.pe | Titulo bien, 22380 caracteres, 3581 palabras |
+| larepublica.pe | Titulo bien, 14497 caracteres, 2377 palabras |
 | dominio inexistente | Mensaje de error controlado, no se cae |
 
-Los numeros de caracteres y palabras no dan exactamente igual que en las
-pruebas del README, pero eso no es culpa de la actualizacion: son portales
-de noticias y cambian el contenido de la portada cada pocos minutos. Los
-titulos, los acentos y el manejo del error siguen igual, que es lo que
-teniamos que comprobar.
+Los numeros de caracteres y palabras no son identicos a los del README,
+pero eso es porque son portales de noticias y la portada cambia cada rato,
+no por la actualizacion. Lo que si sigue igual son los titulos con acentos
+bien y el manejo del error, que era lo que teniamos que comprobar.
 
-Ademas:
+Tambien corrimos:
 
 ```
 $ pip check
@@ -360,191 +339,180 @@ No broken requirements found.
 
 ### Actualizar siempre soluciona el problema?
 
-No. En este caso salio bien, pero eso fue suerte del tamaño del proyecto.
-Actualizar un paquete puede romper la aplicacion si la version nueva cambia
-la API, puede pelearse con otra dependencia que necesitaba la version vieja,
-o puede cambiar un comportamiento sin avisar y que el error aparezca mucho
-despues. Por eso la parte de verificar no es opcional: sin correr la
-aplicacion despues, lo unico que sabemos es que el auditor esta contento.
+No. A nosotros nos salio bien esta vez, pero fue porque el proyecto es
+chico. Actualizar un paquete puede romper la app si cambia la API, puede
+chocar con otra dependencia que necesitaba la version vieja, o puede
+cambiar algo en silencio y que el error salga recien mas adelante. Por eso
+el paso de verificar no es opcional: si no corres la app despues, lo unico
+que sabes es que la herramienta de auditoria quedo contenta, no que tu
+proyecto siga andando.
 
 ## 7. Preguntas de reflexion
 
 ### 1. Cual es la diferencia entre dependencia directa y transitiva
 
-La directa es la que pedimos nosotros, a proposito. La transitiva llega
-porque otra la necesita.
+La directa la pedimos nosotros a proposito, la transitiva llega porque otra
+la necesita para funcionar.
 
-En este proyecto escribimos `pip install requests beautifulsoup4` y esas dos
-son las directas. Las otras seis (`certifi`, `charset-normalizer`, `idna`,
+Nosotros escribimos `pip install requests beautifulsoup4`, esas dos son las
+directas. Las otras seis (`certifi`, `charset-normalizer`, `idna`,
 `urllib3`, `soupsieve`, `typing_extensions`) nunca las escribimos en ningun
-lado, aparecieron solas. La diferencia no esta en el codigo, esta en quien
-tomo la decision: dos las decidimos nosotros y seis las decidieron los
-autores de `requests` y `beautifulsoup4` por nosotros.
+lado, aparecieron solas cuando pip resolvio lo que requests y beautifulsoup4
+necesitaban. La diferencia no esta en el codigo, esta en quien tomo la
+decision de instalarla.
 
 ### 2. Por que pip freeze puede mostrar mas paquetes de los que aparecen en nuestro codigo
 
-Porque `pip freeze` lee el entorno virtual, no el codigo. No le importa si
-el paquete tiene un `import` en `app.py` o si nunca se usa, lo lista igual
-mientras este instalado.
+Porque `pip freeze` lee lo que hay instalado en el entorno, no lee
+`app.py`. No le importa si algo tiene un `import` o no, si esta instalado
+lo lista.
 
-Nuestro `app.py` tiene tres imports (`requests`, `bs4` y `datetime`, y este
-ultimo es de la libreria estandar). El `requirements.txt` tiene ocho lineas.
-Y si corriamos `pip freeze` en el entorno donde estan las herramientas de
-analisis, salian 43. Los tres numeros son correctos, solo estan midiendo
-cosas distintas: lo que el codigo usa, lo que la aplicacion necesita
-instalado, y lo que hay en el entorno.
+Nuestro `app.py` tiene tres imports (`requests`, `bs4` y `datetime`, este
+ultimo de la libreria estandar de python). El `requirements.txt` tiene
+ocho lineas. Y si hacemos `pip freeze` en el entorno donde tambien estan
+las herramientas de analisis, salen 43. Los tres numeros estan bien, cada
+uno mide algo distinto: lo que el codigo usa, lo que la app necesita
+instalado, y lo que hay realmente en el entorno.
 
 ### 3. Una aplicacion puede tener una vulnerabilidad aunque nuestro codigo no tenga ningun import de la libreria vulnerable
 
-Si, y `urllib3` es el ejemplo perfecto en este proyecto.
+Si, y en este proyecto `urllib3` es justo el ejemplo.
 
-En `app.py` no aparece la palabra `urllib3` por ningun lado. Pero cada vez
-que se ejecuta `requests.get(url, headers=HEADERS, timeout=10)`, quien abre
-la conexion, negocia el TLS y maneja los reintentos es `urllib3`. Si tiene
-un fallo, nuestra aplicacion lo tiene, aunque nosotros no lo hayamos
-importado ni sepamos que existe.
+En `app.py` no aparece la palabra `urllib3` en ningun lado. Pero cada vez
+que corre `requests.get(url, headers=HEADERS, timeout=10)`, la que
+realmente abre la conexion, negocia el TLS y maneja los reintentos es
+`urllib3`. Si tuviera un fallo, nuestra app lo tendria igual, aunque
+nosotros nunca la hayamos importado ni supieramos que existia.
 
-En el anexo se ve concretamente: la version 1.26.5 de `urllib3` arrastra 10
+En el anexo se ve bien concreto: la version 1.26.5 de `urllib3` tiene 10
 avisos de seguridad. Si nuestro entorno tuviera esa version en vez de la
-2.7.0, la aplicacion estaria expuesta sin que cambiara una sola linea de
-`app.py`.
+2.7.0, estariamos expuestos sin haber tocado una sola linea de `app.py`.
 
 ### 4. Actualizar todas las dependencias automaticamente es una buena estrategia
 
-No. Es tentador porque suena a estar siempre al dia, pero es tratar todos
-los cambios como si fueran iguales.
+No. Suena bien porque uno cree que asi esta siempre al dia, pero es tratar
+cualquier actualizacion como si todas fueran iguales.
 
-En la Parte VIII se vio de los dos lados. Actualizar `pip` tenia una razon
-concreta (7 vulnerabilidades) y salio perfecto: desaparecieron los avisos y
-no se rompio nada. Actualizar `requests` no tenia ninguna razon, y el
-comando directamente no hizo nada porque ya estaba en la ultima version.
-Actualizar por actualizar habria sido puro ruido.
+En la Parte VIII nos toco ver los dos casos. Actualizar `pip` tenia una
+razon de peso (7 vulnerabilidades) y salio perfecto, se fueron los avisos
+y no se rompio nada. Actualizar `requests` no tenia ninguna razon, y de
+hecho el comando no hizo nada porque ya estaba en su ultima version.
+Actualizar sin motivo hubiera sido solo ruido.
 
-El problema de automatizarlo todo es que una version nueva puede cambiar la
-API, puede chocar con otra dependencia que necesitaba la vieja, o puede
-cambiar un comportamiento sin avisar. Nuestro caso es chico y `requests.get`
-es de lo mas estable que hay, pero en un proyecto grande actualizar 40
-paquetes de golpe y que algo falle deja el problema de averiguar cual de los
-40 fue.
+El problema de hacerlo todo automatico es que una version nueva te puede
+cambiar la API, chocar con otra dependencia que necesitaba la version
+anterior, o cambiar algo en silencio. Nuestro caso es chico y
+`requests.get` es de lo mas estable que existe, pero en un proyecto grande,
+actualizar 40 paquetes de una y que algo falle te deja el problema de
+averiguar cual de los 40 fue.
 
-Lo razonable es actualizar lo que tiene un motivo, y verificar despues.
+Lo que si tiene sentido es actualizar lo que tiene un motivo, y verificar
+despues.
 
 ### 5. Por que las dependencias representan un riesgo para la Software Supply Chain
 
-Porque terminamos ejecutando muchisimo mas codigo ajeno del que revisamos, y
-ese codigo corre con los mismos permisos que el nuestro.
+Porque terminamos corriendo muchisimo mas codigo ajeno del que en
+realidad revisamos, y ese codigo tiene los mismos permisos que el nuestro.
 
-El numero de este proyecto lo dice bastante claro: instalamos cuatro cosas a
-mano y el entorno quedo con 43 paquetes. Nadie del equipo leyo el codigo de
-esos 43, no sabemos quien los mantiene, y sin embargo cualquiera de ellos
-puede leer archivos, abrir conexiones o acceder a las variables de entorno
-igual que `app.py`.
+El numero de este proyecto lo deja bastante claro: instalamos 4 cosas a
+mano y el entorno termino con 43 paquetes. Nadie del equipo leyo el codigo
+de esos 43, no sabemos quien los mantiene, y aun asi cualquiera de ellos
+puede leer archivos, abrir conexiones o leer variables de entorno igual que
+`app.py`.
 
-El riesgo tiene tres formas. La vulnerabilidad publicada, que es la mas
-manejable porque `pip-audit` la encuentra. El paquete comprometido a
-proposito, ya sea por una cuenta de mantenedor robada o por un nombre
-parecido al de uno legitimo, que es peor porque todavia no hay aviso que
-consultar. Y la licencia, que no rompe nada tecnicamente pero puede traer
-condiciones legales que nadie miro.
+El riesgo se puede dar de tres formas distintas: una vulnerabilidad
+publicada (la mas facil de encontrar, para eso sirve `pip-audit`), un
+paquete comprometido a proposito (cuenta de mantenedor robada, o un nombre
+parecido a uno legitimo, y ahi `pip-audit` no sirve porque todavia no hay
+aviso), o un tema de licencias que puede traer condiciones legales que
+nadie reviso.
 
-Lo unico que controlamos de verdad es la lista de dependencias directas.
-Todo lo que viene detras lo heredamos.
+Lo unico que en verdad controlamos es la lista de dependencias directas.
+Todo lo demas lo heredamos.
 
 ## 8. Actividad grupal: detective de dependencias
 
-El caso que hay que resolver es este: una aplicacion Python tiene una alerta
-de seguridad, y el desarrollador responde que ninguna de las librerias que el
-instalo directamente tiene vulnerabilidades. La pregunta es si con eso alcanza
-para decir que la aplicacion es segura.
+El caso: una app tiene una alerta de seguridad, y el desarrollador dice
+que ninguna de las librerias que el instalo directamente tiene
+vulnerabilidades. Hay que investigar si con eso alcanza para decir que la
+app es segura.
 
-Nos toco algo comodo para investigarlo, porque nuestro propio proyecto es
-exactamente ese caso. Cuando corrimos `pip-audit -r requirements.txt` el
-resultado fue `No known vulnerabilities found`, asi que nosotros podriamos
-decir la misma frase que el desarrollador del enunciado y no estariamos
-mintiendo. Igual fuimos punto por punto.
+Nos dimos cuenta que nuestro propio proyecto es justo ese caso. Cuando
+corrimos `pip-audit -r requirements.txt` salio `No known vulnerabilities
+found`, asi que nosotros podriamos decir la misma frase que el
+desarrollador del enunciado sin estar mintiendo. Aun asi fuimos revisando
+punto por punto.
 
-### 1. Dependencias directas
+### Dependencias directas
 
-Dos: `requests==2.34.2` y `beautifulsoup4==4.15.0`. Son las unicas que
-alguien del equipo eligio.
+Dos: `requests==2.34.2` y `beautifulsoup4==4.15.0`. Las unicas que alguien
+del equipo eligio.
 
-### 2. Dependencias transitivas
+### Dependencias transitivas
 
 Seis: `certifi`, `charset-normalizer`, `idna`, `urllib3`, `soupsieve` y
-`typing_extensions`.
+`typing_extensions`. Aca ya se ve el primer problema con lo que dice el
+desarrollador: de los 8 paquetes que necesita la app, el solo habla de 2.
+Se le esta quedando fuera el 75% del arbol.
 
-Aca ya aparece el primer problema con la afirmacion del desarrollador. De
-los 8 paquetes que necesita la aplicacion, el solo esta hablando de 2. Se
-esta dejando fuera del analisis el 75% del arbol.
+### Versiones instaladas
 
-### 3. Versiones instaladas
+Todas fijadas con `==`, ninguna con rango abierto. Eso al menos asegura
+que instalar hoy o en tres meses da lo mismo, que es el minimo para que
+una auditoria sirva de algo.
 
-Todas fijadas con `==` en `requirements.txt`, ninguna con rango abierto. Eso
-al menos garantiza que instalar el proyecto hoy o en tres meses da el mismo
-resultado, que es lo minimo para que una auditoria sirva de algo. Si las
-versiones fueran flotantes, el `pip-audit` de hoy no diria nada sobre lo que
-se instale mañana.
+### Vulnerabilidades
 
-### 4. Vulnerabilidades
+Sobre las 8 dependencias de la app, cero. Sobre el entorno completo, 7
+avisos, todos en `pip`. Y este es el punto que tumba el argumento del
+desarrollador: `pip` no es algo que el instalo, viene con el entorno
+virtual, entonces su frase sigue siendo verdad al pie de la letra y aun
+asi habia 7 vulnerabilidades adentro.
 
-Sobre las 8 dependencias de la aplicacion, ninguna. Sobre el entorno
-completo, 7 avisos, todos en `pip 25.1.1`.
-
-Este es el punto que rompe el argumento del desarrollador. `pip` no es una
-libreria que el instalo, viene con el entorno virtual, asi que su frase
-sigue siendo literalmente cierta y aun asi habia 7 vulnerabilidades ahi
-adentro. La afirmacion era verdadera y el entorno estaba comprometido igual.
-
-### 5. Dependencias que requieren actualizacion
+### Dependencias que necesitan actualizarse
 
 `pip list --outdated` marcaba tres: `pip`, `filelock` y `platformdirs`.
-Ninguna de la aplicacion. `pip` ya lo actualizamos en la Parte VIII y con eso
-desaparecieron los 7 avisos. `filelock` y `platformdirs` son de `pip-audit`,
-estan una version parche por detras y no tienen ningun aviso asociado, asi
-que se pueden dejar.
+Ninguna de la aplicacion. `pip` ya lo actualizamos en la Parte VIII.
+`filelock` y `platformdirs` estan una version parche atras, sin ningun
+aviso asociado, se pueden dejar tranquilos.
 
-### 6. Posibles conflictos
+### Posibles conflictos
 
-`pip check` devuelve `No broken requirements found`, o sea que hoy no hay
-ninguno. Pero mirando el arbol se ve donde podria aparecer uno: `requests`
-pide `urllib3>=1.26,<3` y tenemos la 2.7.0. Si algun dia hiciera falta subir
-a `urllib3` 3.x por un aviso de seguridad, `requests` no lo aceptaria y
-habria que esperar a que sacaran una version compatible. Ahi la
-actualizacion dejaria de ser un comando y pasaria a ser un problema.
+`pip check` dice `No broken requirements found`, hoy no hay ninguno. Pero
+mirando el arbol se ve donde podria salir uno mas adelante: `requests`
+pide `urllib3>=1.26,<3` y nosotros tenemos la 2.7.0. Si algun dia hubiera
+que subir a `urllib3` en su version 3 por algun aviso de seguridad,
+`requests` todavia no lo aceptaria, y ahi si tendriamos un conflicto real
+que resolver.
 
-### 7. Riesgos para la aplicacion
+### Riesgos para la aplicacion
 
-El riesgo real no es ninguna vulnerabilidad concreta de hoy, porque hoy no
-hay. Es que el equipo cree estar mirando 2 paquetes cuando en realidad
-depende de 8, y que el entorno donde todo esto corre tiene 43. Lo que no se
-mira no se actualiza.
+El riesgo hoy no es ninguna vulnerabilidad concreta, porque no hay. El
+riesgo es que el equipo cree que esta mirando 2 paquetes cuando en
+realidad depende de 8, y que el entorno donde corre todo tiene 43. Lo que
+no se mira, no se actualiza.
 
 ### Conclusion
 
-La afirmacion del desarrollador no alcanza, por tres razones distintas.
+La afirmacion del desarrollador no alcanza. Solo cubre las dependencias
+directas, que son la minoria (en nuestro caso 2 de 8), y el codigo de
+`urllib3` corre en cada peticion aunque nadie lo haya elegido ni escrito
+un `import`. Tampoco cubre todo lo que hay instalado, como paso con `pip`,
+que ni siquiera es una dependencia declarada en ningun archivo y tenia 7
+avisos publicados. Y encima esta en presente: un `pip-audit` limpio dice
+que hoy no hay nada, no que mañana tampoco vaya a haber. El resultado
+puede cambiar de un dia para otro sin que nadie toque una linea de codigo.
 
-La primera es que solo cubre las dependencias directas, y esas son la
-minoria. En nuestro caso 2 de 8. El codigo de `urllib3` se ejecuta en cada
-peticion aunque nadie lo haya elegido ni escrito un `import`.
-
-La segunda es que ni siquiera cubre todo lo que hay instalado. `pip` no es
-una dependencia declarada en ningun archivo y tenia 7 avisos publicados.
-
-Y la tercera es que la frase esta en presente. Un `pip-audit` limpio dice
-que hoy no hay nada publicado para esas versiones exactas, no que no vaya a
-haberlo. El resultado puede cambiar sin que nadie toque el codigo, solo
-porque alguien publico un aviso.
-
-Para responder de verdad si la aplicacion es segura habria que auditar el
-arbol completo, no las directas, y hacerlo de forma periodica en vez de una
-sola vez.
+Para saber de verdad si una app es segura habria que auditar el arbol
+completo, no solo lo que se instalo a mano, y hacerlo seguido, no una vez
+y listo.
 
 ## Anexo: demostracion controlada con una version vulnerable
 
-Esto es una prueba aparte, hecha a proposito, para ver como se ve un
+Esta prueba la hicimos aparte, a proposito, solo para ver como se ve un
 resultado positivo de pip-audit. No tiene nada que ver con el entorno real
-del proyecto: se hizo en un entorno virtual separado, `.venv-demo/`, que no
-se sube al repositorio (esta en `.gitignore`) y que no toca ni
+del proyecto: la hicimos en un venv separado, `.venv-demo/`, que no se
+sube al repositorio (esta en el `.gitignore`) y que no toca ni el
 `requirements.txt` ni el `.venv/` de la aplicacion.
 
 Pasos:
@@ -557,14 +525,13 @@ echo urllib3==1.26.5 > temp.txt
 pip-audit -r temp.txt
 ```
 
-`urllib3==1.26.5` es una version de 2021 que se sabe que tiene varios CVEs
-publicados. El archivo `temp.txt` es un archivo local de un solo uso, para
-poder auditar unicamente esa version sin que se mezcle con `pip-audit`
-mismo (que tambien esta instalado en ese `.venv-demo` y, como se vio en la
-seccion 3, tiene su propio ruido); no se sube al repositorio ni forma parte
-del entregable.
+`urllib3==1.26.5` es una version de 2021 con varios CVE publicados. El
+`temp.txt` es un archivo local de un solo uso, para poder auditar
+unicamente esa version sin que se mezcle con `pip-audit` mismo (que
+tambien vive en ese `.venv-demo` y, como vimos en la seccion 3, mete su
+propio ruido). No se sube al repositorio ni es parte del entregable.
 
-Resultado real obtenido:
+Resultado que nos salio:
 
 ```
 Found 10 known vulnerabilities in 1 package
@@ -582,17 +549,16 @@ urllib3 1.26.5  PYSEC-2026-1994 2.6.0
 urllib3 1.26.5  PYSEC-2026-1996 2.6.3
 ```
 
-Como se lee esta tabla: cada fila es un aviso de seguridad distinto (columna
-`ID`) que afecta a la version 1.26.5 de `urllib3`, con la version minima a
-la que hay que subir para dejar de estar expuesto (columna `Fix Versions`).
-Los IDs repetidos (`PYSEC-2023-192` y `PYSEC-2023-212` aparecen dos veces
-cada uno) son porque pip-audit consulta mas de una fuente de datos y a veces
-el mismo aviso aparece registrado en ambas.
+Cada fila es un aviso distinto (columna `ID`) para la version 1.26.5, y la
+columna `Fix Versions` dice a que version hay que subir para dejar de
+estar expuesto. Los IDs que se repiten (`PYSEC-2023-192` y
+`PYSEC-2023-212` salen dos veces cada uno) es porque pip-audit consulta
+mas de una base de datos y a veces el mismo aviso aparece registrado en
+ambas.
 
-Lo importante para el laboratorio es la comparacion: en nuestro
-`requirements.txt` real, `urllib3` esta en la version `2.7.0`, que ya
-incluye las correcciones de todos estos avisos (la columna `Fix Versions`
-de varias filas apunta justo a `2.7.0` o versiones posteriores). Por eso el
-entorno real de la aplicacion no aparece en esta lista: no es que pip-audit
-no funcione, es que la version que ya tenemos instalada corrige estos
-problemas.
+Lo que nos importa comparar es esto: en nuestro `requirements.txt` real,
+`urllib3` esta en la 2.7.0, que ya trae las correcciones de todos estos
+avisos (varias filas de `Fix Versions` apuntan justo a `2.7.0` o mas
+arriba). Por eso nuestro entorno no aparece en esta lista, no porque
+pip-audit no funcione, sino porque la version que ya tenemos instalada
+corrige estos problemas.
